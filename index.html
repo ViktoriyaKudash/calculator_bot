@@ -72,8 +72,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .entry-total { font-size: 15px; font-weight: 700; color: var(--accent); }
 .entry-details { display: flex; flex-wrap: wrap; gap: 6px; }
 .entry-tag { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: var(--accent-light); color: var(--accent); }
-.entry-del { font-size: 12px; color: var(--danger); background: var(--danger-light); border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; margin-left: 8px; }
+.entry-del { font-size: 12px; color: var(--danger); background: var(--danger-light); border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; margin-left: 6px; }
+.entry-edit { font-size: 12px; color: var(--accent); background: var(--accent-light); border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; margin-left: 6px; }
 .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+
+/* EDIT MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--card); border-radius: 20px 20px 0 0; padding: 20px 16px 32px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+.modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); padding: 0 4px; }
+.modal-btn-row { display: flex; gap: 8px; margin-top: 12px; }
+.btn-cancel { flex: 1; padding: 13px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); font-size: 15px; cursor: pointer; }
+.btn-save { flex: 2; padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; }
 
 /* SUMMARY */
 .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -203,6 +214,57 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 </div>
 
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">
+      Редактировать запись
+      <button class="modal-close" onclick="closeEdit()">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <select id="editDay" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:14px;background:var(--bg);color:var(--text);outline:none"></select>
+      <select id="editMonth" style="flex:2;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:14px;background:var(--bg);color:var(--text);outline:none">
+        <option>Январь</option><option>Февраль</option><option>Март</option>
+        <option>Апрель</option><option>Май</option><option>Июнь</option>
+        <option>Июль</option><option>Август</option><option>Сентябрь</option>
+        <option>Октябрь</option><option>Ноябрь</option><option>Декабрь</option>
+      </select>
+      <select id="editYear" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:14px;background:var(--bg);color:var(--text);outline:none"></select>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Шпаклёвка</div>
+    <div class="layers" id="editLayerBtns">
+      <div class="layer-btn" data-v="1" onclick="setEditLayer(1)">1 слой<br><small>4 ₪/м²</small></div>
+      <div class="layer-btn active" data-v="2" onclick="setEditLayer(2)">2 слоя<br><small>12 ₪/м²</small></div>
+      <div class="layer-btn" data-v="3" onclick="setEditLayer(3)">3 слоя<br><small>12 ₪/м²</small></div>
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <div class="field"><label>Площадь (м²)</label><input type="number" id="editSpack" inputmode="decimal" placeholder="0"></div>
+      <div class="field-amt" id="editSpackAmt">0 ₪</div>
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <div class="field"><label>Уголки (п/м)</label><input type="number" id="editUgol" inputmode="decimal" placeholder="0"></div>
+      <div class="field-amt" id="editUgolAmt">0 ₪</div>
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <div class="field"><label>Пас нетук (п/м)</label><input type="number" id="editPas" inputmode="decimal" placeholder="0"></div>
+      <div class="field-amt" id="editPasAmt">0 ₪</div>
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <div class="field"><label>Синары (п/м)</label><input type="number" id="editSin" inputmode="decimal" placeholder="0"></div>
+      <div class="field-amt" id="editSinAmt">0 ₪</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--accent-light);border-radius:10px;padding:12px 14px;margin-bottom:4px">
+      <span style="font-size:14px;color:var(--muted)">Итого</span>
+      <span style="font-size:18px;font-weight:700;color:var(--accent)" id="editTotal">0 ₪</span>
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn-cancel" onclick="closeEdit()">Отмена</button>
+      <button class="btn-save" onclick="saveEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const MONTHS_SHORT = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
@@ -221,10 +283,13 @@ function initSelects() {
   for (let d = 1; d <= 31; d++) { const o = document.createElement('option'); o.value = d; o.textContent = d; dayEl.appendChild(o); }
   dayEl.value = now.getDate();
 
+  const editDayEl = document.getElementById('editDay');
+  for (let d = 1; d <= 31; d++) { const o = document.createElement('option'); o.value = d; o.textContent = d; editDayEl.appendChild(o); }
+
   document.getElementById('addMonth').selectedIndex = now.getMonth();
 
   const curYear = now.getFullYear();
-  ['addYear','histYear','sumYear'].forEach(id => {
+  ['addYear','histYear','sumYear','editYear'].forEach(id => {
     const el = document.getElementById(id);
     el.innerHTML = '';
     for (let y = curYear; y >= curYear - 5; y--) {
@@ -325,6 +390,92 @@ function deleteEntry(id) {
   renderHistory();
 }
 
+// Edit entry
+let editingId = null;
+let editLayer = 2;
+
+function openEdit(id) {
+  const entry = load().find(e => e.id === id);
+  if (!entry) return;
+  editingId = id;
+  editLayer = entry.layers || 2;
+
+  // Fill date
+  document.getElementById('editDay').value = entry.day;
+  document.getElementById('editMonth').selectedIndex = entry.month;
+  document.getElementById('editYear').value = entry.year;
+
+  // Fill values
+  document.getElementById('editSpack').value = entry.area || '';
+  document.getElementById('editUgol').value = entry.ugol || '';
+  document.getElementById('editPas').value = entry.pas || '';
+  document.getElementById('editSin').value = entry.sin || '';
+
+  // Set layers
+  document.querySelectorAll('#editLayerBtns .layer-btn').forEach(b => b.classList.toggle('active', +b.dataset.v === editLayer));
+
+  calcEdit();
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEdit() {
+  editingId = null;
+  document.getElementById('editModal').classList.remove('open');
+}
+
+function setEditLayer(v) {
+  editLayer = v;
+  document.querySelectorAll('#editLayerBtns .layer-btn').forEach(b => b.classList.toggle('active', +b.dataset.v === v));
+  calcEdit();
+}
+
+function calcEdit() {
+  const price = editLayer === 1 ? 4 : 12;
+  const area = parseFloat(document.getElementById('editSpack').value) || 0;
+  const ugol = parseFloat(document.getElementById('editUgol').value) || 0;
+  const pas = parseFloat(document.getElementById('editPas').value) || 0;
+  const sin = parseFloat(document.getElementById('editSin').value) || 0;
+  const s = Math.round(area * price);
+  const u = Math.round(ugol * 10);
+  const p = Math.round(pas * 10);
+  const n = Math.round(sin * 10);
+  document.getElementById('editSpackAmt').textContent = fmt(s);
+  document.getElementById('editUgolAmt').textContent = fmt(u);
+  document.getElementById('editPasAmt').textContent = fmt(p);
+  document.getElementById('editSinAmt').textContent = fmt(n);
+  document.getElementById('editTotal').textContent = fmt(s + u + p + n);
+}
+
+['editSpack','editUgol','editPas','editSin'].forEach(id => document.getElementById(id).addEventListener('input', calcEdit));
+
+function saveEdit() {
+  const price = editLayer === 1 ? 4 : 12;
+  const area = parseFloat(document.getElementById('editSpack').value) || 0;
+  const ugol = parseFloat(document.getElementById('editUgol').value) || 0;
+  const pas = parseFloat(document.getElementById('editPas').value) || 0;
+  const sin = parseFloat(document.getElementById('editSin').value) || 0;
+  const s = Math.round(area * price);
+  const u = Math.round(ugol * 10);
+  const p = Math.round(pas * 10);
+  const n = Math.round(sin * 10);
+  const total = s + u + p + n;
+  if (total === 0) { alert('Введите хотя бы одно значение'); return; }
+
+  const day = +document.getElementById('editDay').value;
+  const month = document.getElementById('editMonth').selectedIndex;
+  const year = +document.getElementById('editYear').value;
+
+  const data = load().map(e => e.id === editingId ? {
+    ...e, day, month, year, layers: editLayer,
+    area, ugol, pas, sin,
+    spack: s, ugolAmt: u, pasAmt: p, sinAmt: n, total
+  } : e);
+  save(data);
+  closeEdit();
+  renderHistory();
+}
+
+
 // Render history
 function renderHistory() {
   const monthSel = document.getElementById('histMonth');
@@ -349,6 +500,7 @@ function renderHistory() {
         <div class="entry-date">${e.day} ${MONTHS_SHORT[e.month]} ${e.year}</div>
         <div style="display:flex;align-items:center">
           <span class="entry-total">${fmt(e.total)}</span>
+          <button class="entry-edit" onclick="openEdit(${e.id})">✎</button>
           <button class="entry-del" onclick="deleteEntry(${e.id})">✕</button>
         </div>
       </div>
