@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Журнал работ</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f5f0;
+  --card: #ffffff;
+  --border: rgba(0,0,0,0.08);
+  --text: #1a1a1a;
+  --muted: #888;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --green: #16a34a;
+  --green-light: #f0fdf4;
+  --radius: 14px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* TABS */
+.tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.tab { flex: 1; padding: 14px 8px; text-align: center; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.page { display: none; padding: 16px; }
+.page.active { display: block; }
+
+/* CARDS */
+.card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
+.card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+
+/* FORM */
+.period-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.period-row select { flex: 1; border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; font-size: 14px; background: var(--card); color: var(--text); outline: none; }
+.row { display: flex; gap: 10px; align-items: flex-end; }
+.field { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 13px; color: var(--muted); }
+.field input { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 16px; color: var(--text); background: var(--bg); outline: none; width: 100%; transition: border-color 0.15s; }
+.field input:focus { border-color: var(--accent); }
+.field-amt { font-size: 15px; font-weight: 600; color: var(--accent); padding: 10px 0; min-width: 72px; text-align: right; }
+
+.layers { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.layer-btn { flex: 1; min-width: 72px; padding: 8px 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); font-size: 12px; color: var(--muted); cursor: pointer; text-align: center; transition: all 0.15s; }
+.layer-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+.save-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: opacity 0.15s; }
+.save-btn:active { opacity: 0.85; }
+
+/* TOTAL CARD */
+.total-card { background: var(--accent); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.total-label { font-size: 13px; color: rgba(255,255,255,0.75); }
+.total-sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+.total-value { font-size: 30px; font-weight: 700; color: #fff; }
+.total-cur { font-size: 16px; color: rgba(255,255,255,0.7); }
+
+/* DETAIL ROWS */
+.detail-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid var(--border); }
+.detail-row:last-child { border-bottom: none; }
+.detail-name { color: var(--muted); }
+.detail-val { font-weight: 600; }
+
+/* ENTRIES LIST */
+.entry-item { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 12px 14px; margin-bottom: 8px; }
+.entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.entry-date { font-size: 13px; font-weight: 600; color: var(--text); }
+.entry-total { font-size: 15px; font-weight: 700; color: var(--accent); }
+.entry-details { display: flex; flex-wrap: wrap; gap: 6px; }
+.entry-tag { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: var(--accent-light); color: var(--accent); }
+.entry-del { font-size: 12px; color: var(--danger); background: var(--danger-light); border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; margin-left: 8px; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+
+/* SUMMARY */
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.stat-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.stat-val { font-size: 20px; font-weight: 700; color: var(--text); }
+.stat-cur { font-size: 13px; color: var(--muted); }
+
+.month-row-summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; cursor: pointer; }
+.month-row-summary:last-child { border-bottom: none; }
+.month-name { color: var(--text); font-weight: 500; }
+.month-amt { color: var(--accent); font-weight: 600; }
+.month-days { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('add')">➕ Внести</div>
+  <div class="tab" onclick="showPage('history')">📋 История</div>
+  <div class="tab" onclick="showPage('summary')">📊 Сводка</div>
+</div>
+
+<!-- PAGE: ADD ENTRY -->
+<div class="page active" id="page-add">
+  <div class="period-row">
+    <select id="addDay"></select>
+    <select id="addMonth">
+      <option>Январь</option><option>Февраль</option><option>Март</option>
+      <option>Апрель</option><option>Май</option><option>Июнь</option>
+      <option>Июль</option><option>Август</option><option>Сентябрь</option>
+      <option>Октябрь</option><option>Ноябрь</option><option>Декабрь</option>
+    </select>
+    <select id="addYear"></select>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Шпаклёвка</div>
+    <div class="layers">
+      <div class="layer-btn" data-v="1" onclick="setLayer(1)">1 слой<br><small>4 ₪/м²</small></div>
+      <div class="layer-btn active" data-v="2" onclick="setLayer(2)">2 слоя<br><small>12 ₪/м²</small></div>
+      <div class="layer-btn" data-v="3" onclick="setLayer(3)">3 слоя<br><small>12 ₪/м²</small></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Площадь (м²)</label><input type="number" id="spackArea" inputmode="decimal" placeholder="0"></div>
+      <div class="field-amt" id="spackAmt">0 ₪</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Уголки <span style="font-weight:400;color:var(--muted)">— 10 ₪/п.м</span></div>
+    <div class="row">
+      <div class="field"><label>Длина (п/м)</label><input type="number" id="ugolLen" inputmode="decimal" placeholder="0"></div>
+      <div class="field-amt" id="ugolAmt">0 ₪</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Пас нетук <span style="font-weight:400;color:var(--muted)">— 10 ₪/п.м</span></div>
+    <div class="row">
+      <div class="field"><label>Длина (п/м)</label><input type="number" id="pasLen" inputmode="decimal" placeholder="0"></div>
+      <div class="field-amt" id="pasAmt">0 ₪</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Синары <span style="font-weight:400;color:var(--muted)">— 10 ₪/п.м</span></div>
+    <div class="row">
+      <div class="field"><label>Длина (п/м)</label><input type="number" id="sinLen" inputmode="decimal" placeholder="0"></div>
+      <div class="field-amt" id="sinAmt">0 ₪</div>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--accent-light);border-color:rgba(37,99,235,0.15)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:14px;color:var(--muted)">Итого за день</div>
+      <div style="font-size:22px;font-weight:700;color:var(--accent)" id="dayTotal">0 ₪</div>
+    </div>
+  </div>
+
+  <button class="save-btn" onclick="saveEntry()">Сохранить запись</button>
+</div>
+
+<!-- PAGE: HISTORY -->
+<div class="page" id="page-history">
+  <div class="period-row">
+    <select id="histMonth">
+      <option value="-1">Все месяцы</option>
+      <option>Январь</option><option>Февраль</option><option>Март</option>
+      <option>Апрель</option><option>Май</option><option>Июнь</option>
+      <option>Июль</option><option>Август</option><option>Сентябрь</option>
+      <option>Октябрь</option><option>Ноябрь</option><option>Декабрь</option>
+    </select>
+    <select id="histYear"></select>
+  </div>
+  <div id="historyList"></div>
+</div>
+
+<!-- PAGE: SUMMARY -->
+<div class="page" id="page-summary">
+  <div class="period-row">
+    <select id="sumYear"></select>
+  </div>
+
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="stat-label">За год</div>
+      <div><span class="stat-val" id="yearTotal">0</span> <span class="stat-cur">₪</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Записей</div>
+      <div><span class="stat-val" id="yearDays">0</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">По месяцам</div>
+    <div id="monthsList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">По видам работ за год</div>
+    <div class="detail-row"><span class="detail-name">Шпаклёвка</span><span class="detail-val" id="ys-spack">0 ₪</span></div>
+    <div class="detail-row"><span class="detail-name">Уголки</span><span class="detail-val" id="ys-ugol">0 ₪</span></div>
+    <div class="detail-row"><span class="detail-name">Пас нетук</span><span class="detail-val" id="ys-pas">0 ₪</span></div>
+    <div class="detail-row"><span class="detail-name">Синары</span><span class="detail-val" id="ys-sin">0 ₪</span></div>
+  </div>
+</div>
+
+<script>
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const MONTHS_SHORT = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+const now = new Date();
+let selectedLayer = 2;
+
+function fmt(n) { return n.toLocaleString('ru-RU') + ' ₪'; }
+
+// Storage
+function load() { try { return JSON.parse(localStorage.getItem('worklog') || '[]'); } catch(e) { return []; } }
+function save(data) { localStorage.setItem('worklog', JSON.stringify(data)); }
+
+// Init selects
+function initSelects() {
+  const dayEl = document.getElementById('addDay');
+  for (let d = 1; d <= 31; d++) { const o = document.createElement('option'); o.value = d; o.textContent = d; dayEl.appendChild(o); }
+  dayEl.value = now.getDate();
+
+  document.getElementById('addMonth').selectedIndex = now.getMonth();
+
+  const curYear = now.getFullYear();
+  ['addYear','histYear','sumYear'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    for (let y = curYear; y >= curYear - 5; y--) {
+      const o = document.createElement('option'); o.value = y; o.textContent = y; el.appendChild(o);
+    }
+  });
+
+  document.getElementById('histMonth').selectedIndex = now.getMonth() + 1;
+  document.getElementById('histYear').value = curYear;
+  document.getElementById('sumYear').value = curYear;
+
+  document.getElementById('histMonth').addEventListener('change', renderHistory);
+  document.getElementById('histYear').addEventListener('change', renderHistory);
+  document.getElementById('sumYear').addEventListener('change', renderSummary);
+}
+
+// Tabs
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const idx = ['add','history','summary'].indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'summary') renderSummary();
+}
+
+// Layer
+function setLayer(v) {
+  selectedLayer = v;
+  document.querySelectorAll('.layer-btn').forEach(b => b.classList.toggle('active', +b.dataset.v === v));
+  calcDay();
+}
+
+// Calc
+function calcDay() {
+  const price = selectedLayer === 1 ? 4 : 12;
+  const area = parseFloat(document.getElementById('spackArea').value) || 0;
+  const ugol = parseFloat(document.getElementById('ugolLen').value) || 0;
+  const pas = parseFloat(document.getElementById('pasLen').value) || 0;
+  const sin = parseFloat(document.getElementById('sinLen').value) || 0;
+  const s = Math.round(area * price);
+  const u = Math.round(ugol * 10);
+  const p = Math.round(pas * 10);
+  const n = Math.round(sin * 10);
+  const total = s + u + p + n;
+  document.getElementById('spackAmt').textContent = fmt(s);
+  document.getElementById('ugolAmt').textContent = fmt(u);
+  document.getElementById('pasAmt').textContent = fmt(p);
+  document.getElementById('sinAmt').textContent = fmt(n);
+  document.getElementById('dayTotal').textContent = fmt(total);
+}
+
+['spackArea','ugolLen','pasLen','sinLen'].forEach(id => document.getElementById(id).addEventListener('input', calcDay));
+
+// Save entry
+function saveEntry() {
+  const price = selectedLayer === 1 ? 4 : 12;
+  const area = parseFloat(document.getElementById('spackArea').value) || 0;
+  const ugol = parseFloat(document.getElementById('ugolLen').value) || 0;
+  const pas = parseFloat(document.getElementById('pasLen').value) || 0;
+  const sin = parseFloat(document.getElementById('sinLen').value) || 0;
+  const s = Math.round(area * price);
+  const u = Math.round(ugol * 10);
+  const p = Math.round(pas * 10);
+  const n = Math.round(sin * 10);
+  const total = s + u + p + n;
+  if (total === 0) { alert('Введите хотя бы одно значение'); return; }
+
+  const day = +document.getElementById('addDay').value;
+  const month = document.getElementById('addMonth').selectedIndex;
+  const year = +document.getElementById('addYear').value;
+
+  const entry = {
+    id: Date.now(),
+    day, month, year,
+    layers: selectedLayer,
+    area, ugol, pas, sin,
+    spack: s, ugolAmt: u, pasAmt: p, sinAmt: n,
+    total
+  };
+
+  const data = load();
+  data.push(entry);
+  save(data);
+
+  // Reset
+  ['spackArea','ugolLen','pasLen','sinLen'].forEach(id => document.getElementById(id).value = '');
+  calcDay();
+  alert('Запись сохранена!');
+}
+
+// Delete entry
+function deleteEntry(id) {
+  if (!confirm('Удалить запись?')) return;
+  const data = load().filter(e => e.id !== id);
+  save(data);
+  renderHistory();
+}
+
+// Render history
+function renderHistory() {
+  const monthSel = document.getElementById('histMonth');
+  const year = +document.getElementById('histYear').value;
+  const monthIdx = +monthSel.value; // -1 = all
+
+  let data = load().filter(e => e.year === year);
+  if (monthIdx >= 0) data = data.filter(e => e.month === monthIdx);
+  data.sort((a,b) => b.year*10000+b.month*100+b.day - (a.year*10000+a.month*100+a.day));
+
+  const el = document.getElementById('historyList');
+  if (data.length === 0) { el.innerHTML = '<div class="empty-state">Нет записей за этот период</div>'; return; }
+
+  el.innerHTML = data.map(e => {
+    const tags = [];
+    if (e.area > 0) tags.push(`Шпаклёвка ${e.area}м² (${e.layers}сл)`);
+    if (e.ugol > 0) tags.push(`Уголки ${e.ugol}п.м`);
+    if (e.pas > 0) tags.push(`Пас нетук ${e.pas}п.м`);
+    if (e.sin > 0) tags.push(`Синары ${e.sin}п.м`);
+    return `<div class="entry-item">
+      <div class="entry-header">
+        <div class="entry-date">${e.day} ${MONTHS_SHORT[e.month]} ${e.year}</div>
+        <div style="display:flex;align-items:center">
+          <span class="entry-total">${fmt(e.total)}</span>
+          <button class="entry-del" onclick="deleteEntry(${e.id})">✕</button>
+        </div>
+      </div>
+      <div class="entry-details">${tags.map(t => `<span class="entry-tag">${t}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// Render summary
+function renderSummary() {
+  const year = +document.getElementById('sumYear').value;
+  const data = load().filter(e => e.year === year);
+
+  const yearTot = data.reduce((a,e) => a+e.total, 0);
+  document.getElementById('yearTotal').textContent = yearTot.toLocaleString('ru-RU');
+  document.getElementById('yearDays').textContent = data.length;
+  document.getElementById('ys-spack').textContent = fmt(data.reduce((a,e)=>a+e.spack,0));
+  document.getElementById('ys-ugol').textContent = fmt(data.reduce((a,e)=>a+e.ugolAmt,0));
+  document.getElementById('ys-pas').textContent = fmt(data.reduce((a,e)=>a+e.pasAmt,0));
+  document.getElementById('ys-sin').textContent = fmt(data.reduce((a,e)=>a+e.sinAmt,0));
+
+  const byMonth = Array.from({length:12}, (_,i) => {
+    const entries = data.filter(e => e.month === i);
+    return { name: MONTHS[i], total: entries.reduce((a,e)=>a+e.total,0), days: entries.length };
+  });
+
+  const hasAny = byMonth.some(m => m.total > 0);
+  document.getElementById('monthsList').innerHTML = hasAny
+    ? byMonth.filter(m => m.total > 0).map(m =>
+        `<div class="month-row-summary">
+          <div><div class="month-name">${m.name}</div><div class="month-days">${m.days} зап.</div></div>
+          <div class="month-amt">${fmt(m.total)}</div>
+        </div>`).join('')
+    : '<div class="empty-state">Нет данных за этот год</div>';
+}
+
+initSelects();
+calcDay();
+
+if (window.Telegram?.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+</script>
+</body>
+</html>
